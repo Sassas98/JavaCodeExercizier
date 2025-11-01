@@ -74,7 +74,7 @@ export default defineConfig(() => {
     server: {
       proxy: {
         '/run':     'http://localhost:3010',
-        '/lsp':     { target: 'ws://localhost:3010', ws: true },
+        '/lsp':     { target: 'ws://localhost:3010', ws: true, changeOrigin: true, },
       },
     },
   }

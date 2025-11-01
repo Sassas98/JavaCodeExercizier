@@ -13,9 +13,10 @@
   "dependencies": {
     "express": "^5.1.0",
     "monaco-editor": "^0.54.0",
-    "monaco-languageclient": "^10.2.0",
+    "monaco-languageclient": "^8.8.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "vscode-languageclient": "^9.0.1",
     "vscode-ws-jsonrpc": "^3.5.0",
     "ws": "^8.18.3"
   },
