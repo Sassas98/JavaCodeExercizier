@@ -1,19 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createConfiguredEditor } from 'vscode/monaco'
 import { MonacoLanguageClient } from 'monaco-languageclient'
-import { CloseAction, ErrorAction } from 'vscode-languageclient/browser'
-import type { MessageTransports } from 'vscode-languageclient'
-import { toSocket, WebSocketMessageReader, WebSocketMessageWriter } from 'vscode-ws-jsonrpc'
-import { RUNNER_HTTP, RUNNER_WS } from './config'
-
-type FilesMap = Record<string, string>
-
-function wsUrl(path: string) {
-  return (RUNNER_WS ? RUNNER_WS.replace(/\/$/, '') : (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host) + path
-}
-function httpUrl(path: string) {
-  return RUNNER_HTTP ? RUNNER_HTTP.replace(/\/$/, '') + path : path
-}
 
 export default function CodeEditor() {
   const container = useRef<HTMLDivElement>(null)
@@ -21,10 +8,10 @@ export default function CodeEditor() {
   const clientRef = useRef<MonacoLanguageClient | null>(null)
   const [mainClass, setMainClass] = useState('Hello')
   const [output, setOutput] = useState('')
+  const [modified, setModified] = useState(true)
 
   useEffect(() => {
     if (!container.current) return
-    let ws: WebSocket | null = null
 
     // modello/editor (nessuna init servizi qui)
     const editor = createConfiguredEditor(container.current!, {
@@ -38,46 +25,29 @@ export default function CodeEditor() {
     automaticLayout: true,
     minimap: { enabled: false },
     fontSize: 14,
+    theme: 'vs-dark',
   });
     editorRef.current = editor
 
-    // LSP
-    ws = new WebSocket(wsUrl('/lsp'))
-    ws.onopen = () => {
-      const keep = setInterval(() => {
-        if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'ping' }))
-      }, 30_000)
-
-      const socket = toSocket(ws!)
-      const reader = new WebSocketMessageReader(socket)
-      const writer = new WebSocketMessageWriter(socket)
-
-      const client = new MonacoLanguageClient({
-        name: 'Java LSP',
-        clientOptions: {
-          documentSelector: [{ language: 'java' }],
-          errorHandler: {
-            error: () => ({ action: ErrorAction.Continue }),
-            closed: () => ({ action: CloseAction.Restart }),
-          },
-        },
-        connectionProvider: { get: async (): Promise<MessageTransports> => ({ reader, writer }) },
-      })
-
-      client.start()
-      clientRef.current = client
-
-      ws!.onclose = () => {
-        clearInterval(keep)
-      }
-    }
-
+    editor.onDidChangeModelContent(() => {
+      setModified(true)
+    });
+    
     return () => {
-      try { ws?.close() } catch {}
       clientRef.current?.stop()
       editor.dispose()
     }
-  }, [])
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (modified) {
+        setModified(false);
+        runCode()
+      }
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [modified])
 
   async function runCode() {
     setOutput('Running…')
@@ -96,7 +66,7 @@ export default function CodeEditor() {
         files[name] = model.getValue()
     } else {
         // fallback: nome di default
-        files['Hello.java'] = `public class Hello{ public static void main(String[] a){ System.out.println("Hi"); } }`
+        files['Hello.java'] = `class Hello{ public static void main(String[] a){ System.out.println("Hi"); } }`
     }
 
     const payload = { main: (mainClass || 'Hello').replace(/\.java$/i, ''), files }
@@ -127,7 +97,7 @@ export default function CodeEditor() {
         <button className="px-3 py-1 rounded bg-black text-white" onClick={runCode}>Run</button>
       </div>
       <div ref={container} style={{ height: '60vh', border: '1px solid #ddd' }} />
-      <pre className="bg-zinc-100 p-3 rounded whitespace-pre-wrap min-h-[80px]">{output}</pre>
+      <pre className="bg-zinc-100 p-3 rounded whitespace-pre-wrap">{output}</pre>
     </div>
   )
 }
