@@ -1,11 +1,12 @@
-﻿<!DOCTYPE html>
+﻿@model EditorViewModel
+
+<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Java Editor</title>
 
-    <!-- Monaco via CDN -->
     <script src="https://unpkg.com/monaco-editor@0.54.0/min/vs/loader.js"></script>
 
     <style>
@@ -30,7 +31,6 @@
           justify-content: start;
           align-items: center;
         }
-        button:hover { background: #005fa3; }
         pre {
           background: #111;
           color: #9f9;
@@ -39,16 +39,14 @@
           max-height: 150px;
           overflow: auto;
         }
-
         .javac-error-line {
             background-color: rgba(255, 0, 0, 0.2);
         }
-
     </style>
 </head>
 <body>
     <div id="controls">
-        <span>Java Editor (Monaco)</span>
+        <span>Java Exercise [@Model.Name]</span>
     </div>
     <div id="editor"></div>
     <pre id="output" style="height:20vh"></pre>
@@ -57,11 +55,7 @@
           require.config({ paths: { vs: "https://unpkg.com/monaco-editor@0.54.0/min/vs" } });
           require(["vs/editor/editor.main"], function () {
             const editor = monaco.editor.create(document.getElementById("editor"), {
-              value: `class App {
-    public static void main(String[] args) {
-        System.out.println("Ciao mondo!");
-    }
-}`,
+              value: `@Html.Raw(Model.Java)`,
               language: "java",
               theme: "vs-dark",
               automaticLayout: true,
@@ -80,35 +74,42 @@
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
-                    files: { "App.java": code },
-                    main: "App"
+                    java: code,
+                    main: "@(Model.Name).java"
                   })
                 });
                 const data = await res.json();
                 if (!data.ok && data.phase === "compile") {
-                    output.textContent = `[compile error]\n${data.stderr}`;
+                    output.textContent = "";//`[compile error]\n${data.stderr}`;
                     const regex = /:(\d+): error: (.*)/g;
                     let match;
                     const markers = [];
+                    const model = editor.getModel();
+                    const offset = data.start || 0;
+                    console.log({offset});
                     while ((match = regex.exec(data.stderr)) !== null) {
-                      const line = parseInt(match[1]);
-                      const message = match[2].trim();
-                      const model = editor.getModel();
-                      const endCol = model.getLineMaxColumn(line);
-                      markers.push({
-                        startLineNumber: line,
-                        startColumn: 1,
-                        endLineNumber: line,
-                        endColumn: endCol,
-                        message,
-                        severity: monaco.MarkerSeverity.Error,
-                      });
+                        const line = parseInt(match[1]) - offset;
+                        if(line < 0) continue;
+                        const message = match[2].trim();
+                        const lineCount = model.getLineCount();
+                        const safeLine = Math.min(line, lineCount);
+
+                        const endCol = model.getLineMaxColumn(safeLine);
+
+                        markers.push({
+                            startLineNumber: safeLine,
+                            startColumn: 1,
+                            endLineNumber: safeLine,
+                            endColumn: endCol,
+                            message,
+                            severity: monaco.MarkerSeverity.Error,
+                        });
                     }
                     monaco.editor.setModelMarkers(editor.getModel(), "javac", markers);
                   } else {
                     output.textContent = data.ok
                       ? (data.stdout || "(nessun output)")
-                      : `[${data.phase} error]\n${data.stderr}`;
+                      : ""; //`[${data.phase} error]\n${data.stderr}`;
                   }
               } catch (e) {
                 output.textContent = "Errore: " + e.message;
@@ -118,8 +119,9 @@
             let t;
             editor.onDidChangeModelContent(() => {
               clearTimeout(t);
-              t = setTimeout(run, 600);
+              t = setTimeout(run, 2000);
             });
+            run();
           });
     </script>
 

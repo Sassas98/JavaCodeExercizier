@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using JavaCodeExercizierWebApp.utils;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using System.Xml.Linq;
 
 namespace JavaCodeExercizierWebApp.Controllers
 {
@@ -19,29 +21,32 @@ namespace JavaCodeExercizierWebApp.Controllers
 
         public class RunRequest
         {
-            public Dictionary<string, string> Files { get; set; } = new();
+            public string Java { get; set; } = "";
             public string Main { get; set; } = "App";
         }
 
         [HttpPost("run")]
-        public async Task<IActionResult> Run([FromBody] RunRequest req)
+        public async Task<ActionResult> Run([FromBody] RunRequest req)
         {
+            if (!System.IO.File.Exists("wwwroot/java/Main" + req.Main)) return NotFound();
+            var main = System.IO.File.ReadAllText("wwwroot/java/Main" + req.Main);
+            var tester = System.IO.File.ReadAllText("wwwroot/java/Tester.java"); 
+            req.Main = "Main" + req.Main;
+            var mainClass = req.Main.Replace(".java", "");
+            var code = $"{main}\n\n{tester}\n\n";
+            int start = code.Split("\n").Length;
+            code = $"{code}{req.Java}".Replace("public class", "class").Replace("class " + mainClass, "public class " + mainClass).NormalizeImports();
             var tmp = Path.Combine(Path.GetTempPath(), "javac-run-" + Guid.NewGuid());
             Directory.CreateDirectory(tmp);
 
             try
             {
-                // 1️⃣ Scrivi i sorgenti
-                foreach (var kv in req.Files)
-                {
-                    var filePath = Path.Combine(tmp, kv.Key);
-                    Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-                    await System.IO.File.WriteAllTextAsync(filePath, kv.Value, new UTF8Encoding(false));
-                }
-
-                // 2️⃣ Compila
+                var filePath = Path.Combine(tmp, req.Main);
+                Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+                await System.IO.File.WriteAllTextAsync(filePath, code, new UTF8Encoding(false));
+                
                 var javacPath = JAVA.EndsWith("java.exe") ? JAVA.Replace("java.exe", "javac.exe") : JAVA.Replace("java", "javac");
-                var toCompile = string.Join(" ", req.Files.Keys.Select(f => Path.Combine(tmp, f)));
+                var toCompile = Path.Combine(tmp, req.Main);
                 var compile = await RunProcess(javacPath, $"-Xlint:all {toCompile}", tmp);
 
                 if (compile.Code != 0)
@@ -52,11 +57,11 @@ namespace JavaCodeExercizierWebApp.Controllers
                         phase = "compile",
                         code = compile.Code,
                         stdout = compile.Stdout,
-                        stderr = compile.Stderr
+                        stderr = compile.Stderr,
+                        start = start
                     });
                 }
 
-                // 3️⃣ Esegui
                 var run = await RunProcess(JAVA, $"-cp \"{tmp}\" {req.Main}", tmp, timeoutMs: 3000);
 
                 return Ok(new
@@ -65,7 +70,8 @@ namespace JavaCodeExercizierWebApp.Controllers
                     phase = "run",
                     code = run.Code,
                     stdout = run.Stdout,
-                    stderr = run.Stderr
+                    stderr = run.Stderr,
+                    start = start
                 });
             }
             catch (Exception ex)
