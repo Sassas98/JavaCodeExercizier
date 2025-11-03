@@ -62,8 +62,8 @@ namespace JavaCodeExercizierWebApp.Controllers
                     });
                 }
 
-                var run = await RunProcess(JAVA, $"-cp \"{tmp}\" {req.Main}", tmp, timeoutMs: 3000);
-
+                var run = await RunProcess(JAVA, $"-cp \"{tmp}\" {req.Main}", tmp);
+                Console.WriteLine(run);
                 return Ok(new
                 {
                     ok = run.Code == 0,
@@ -98,22 +98,36 @@ namespace JavaCodeExercizierWebApp.Controllers
                 CreateNoWindow = true
             };
 
-            var proc = new Process { StartInfo = psi };
+            var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
             var stdout = new StringBuilder();
             var stderr = new StringBuilder();
 
-            proc.OutputDataReceived += (_, e) => { if (e.Data != null) stdout.AppendLine(e.Data); };
-            proc.ErrorDataReceived += (_, e) => { if (e.Data != null) stderr.AppendLine(e.Data); };
+            var tcsOut = new TaskCompletionSource();
+            var tcsErr = new TaskCompletionSource();
+
+            proc.OutputDataReceived += (_, e) =>
+            {
+                if (e.Data == null) tcsOut.TrySetResult();
+                else stdout.AppendLine(e.Data);
+            };
+
+            proc.ErrorDataReceived += (_, e) =>
+            {
+                if (e.Data == null) tcsErr.TrySetResult();
+                else stderr.AppendLine(e.Data);
+            };
 
             proc.Start();
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
 
-            var finished = await Task.Run(() => proc.WaitForExit(timeoutMs));
-            if (!finished)
+            var exited = await Task.Run(() => proc.WaitForExit(timeoutMs));
+            if (!exited)
             {
-                try { proc.Kill(); } catch { }
+                try { proc.Kill(entireProcessTree: true); } catch { }
             }
+
+            await Task.WhenAll(tcsOut.Task, tcsErr.Task);
 
             return (proc.ExitCode, stdout.ToString(), stderr.ToString());
         }

@@ -17,7 +17,7 @@ public class MainScatola {
             Scatola s1 = new Scatola(10, 10);
             return s1.aggiungi(s1);
         }, new String[]{"Scatola [10 10]"}, false));
-        list.add(new Tester("Aggiunta scatola in una più piccola", () -> {
+        list.add(new Tester("Aggiunta scatola in una piu' piccola", () -> {
             Scatola s1 = new Scatola(10, 10);
             Scatola s2 = new Scatola(15, 1);
             return s1.aggiungi(s2);

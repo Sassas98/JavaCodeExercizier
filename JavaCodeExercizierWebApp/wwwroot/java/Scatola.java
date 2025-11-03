@@ -1,29 +1,25 @@
 /**
  * Si vuole modellare un sistema di gestione di scatole. 
 
-Definire la classe  Scatola che può contenere altre scatole. Ciascuna scatola è caratterizzata da un volume espresso con un attributo di tipo float. Definire i seguenti metodi: 
+Definire la classe  Scatola che può contenere altre scatole. Ciascuna scatola è caratterizzata da un volume espresso con un attributo di tipo float. 
+Definire i seguenti metodi: 
 
-Scatola(float v, int n),  costruttore che crea una scatola vuota di volume v.  L'argomento n indica il numero massimo di scatole che può contenere. Il costruttore lancia un'eccezione di tipo IllegalArgumentException se n o v sono negativi o 0.
+Scatola(float v, int n),  costruttore che crea una scatola vuota di volume v.  L'argomento n indica il numero massimo di scatole che può contenere. 
+Il costruttore lancia un'eccezione di tipo IllegalArgumentException se n o v sono negativi o 0.
 int numero() produce il numero di scatole presenti nella scatola. 
-boolean aggiungi(Scatola s) aggiunge la scatola  s alla scatola in oggetto. Se la scatola da aggiungere è la stessa della scatola in oggetto o se è  null viene prodotto false. Se si è raggiunto il numero massimo di scatole o se la somma dei volumi delle scatole presenti, compresa la scatola da aggiungere, è superiore alla capacitè della scatola in oggetto viene prodotto false altrimenti la scatola è aggiunta e viene prodotto true. 
+boolean aggiungi(Scatola s) aggiunge la scatola  s alla scatola in oggetto. 
+Se la scatola da aggiungere è la stessa della scatola in oggetto o se è  null viene prodotto false. 
+Se si è raggiunto il numero massimo di scatole o se la somma dei volumi delle scatole presenti, compresa la scatola da aggiungere, 
+è superiore alla capacitè della scatola in oggetto viene prodotto false altrimenti la scatola è aggiunta e viene prodotto true. 
 float libero() produce il volume disponibile.
 float getVolume() produce il volume della scatola.
-Sovrascrivere il metodo String toString() di modo che venga prodotto il numero di scatole presenti in una scatola e il volume libero disponibile. Ad esempio una scatola che contiene una scatola e che ha volume 6.0 produrrà "1 6.0". 
+Sovrascrivere il metodo String toString() di modo che venga prodotto il numero di scatole presenti in una scatola e il volume libero disponibile. 
+Ad esempio una scatola che contiene una scatola e che ha volume 6.0 produrrà "1 6.0". 
 Sovrascrivere il metodo  boolean equals(Object s) che produce true se due scatole hanno la stessa capacità, false altrimenti.
-ATTENZIONE:  é vietato l'uso di classi della libreria standard di Java ad eccezione di  String e delle sottoclassi di  Exception. Se utile, è possibile definire metodi ausiliari privati in aggiunta a quelli richiesti.
-
-
+ATTENZIONE:  é vietato l'uso di classi della libreria standard di Java ad eccezione di  String e delle sottoclassi di  Exception. 
+Se utile, è possibile definire metodi ausiliari privati in aggiunta a quelli richiesti.
  */
 
- /*
-public class Scatola {
-    public Scatola(float v, int n){}
-    public int numero(){return 0;}
-    boolean aggiungi(Scatola s){return false;}
-    public float libero(){return 0;}
-    public float getVolume(){return 0;}
-}
-*/
 public class Scatola {
     private Scatola[] scatole;
     private int count;
