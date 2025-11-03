@@ -72,6 +72,28 @@ public class Tester {
     private TestResult error(Exception e) {
         return new TestResult(TestResultType.ERROR, description + ": [" + e.getClass().getName() + "] " + e.getMessage());
     }
+
+    public static void printResults(java.util.List<TestResult> results){
+        int tot = results.size();
+        int successes = (int)results.stream().filter(x -> x.type() == TestResultType.SUCCESS).count();
+        int failures = (int)results.stream().filter(x -> x.type() == TestResultType.FAILURE).count();
+        int errors = (int)results.stream().filter(x -> x.type() == TestResultType.ERROR).count();
+        System.out.println("Test superati [" + successes + "/" + tot + "]");
+        if(failures > 0){
+            System.out.println("Fallimenti: " + failures);
+            for(TestResult tr : results){
+                if(tr.type() == TestResultType.FAILURE)
+                    System.out.println("- " + tr.message());
+            }
+        }
+        if(errors > 0){
+            System.out.println("Errori: " + errors);
+            for(TestResult tr : results){
+                if(tr.type() == TestResultType.ERROR)
+                    System.out.println("- " + tr.message());
+            }
+        }
+    }
 }
 
 record TestResult(TestResultType type, String message) { }

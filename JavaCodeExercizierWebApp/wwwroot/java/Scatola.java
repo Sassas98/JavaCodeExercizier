@@ -21,22 +21,22 @@ Se utile, è possibile definire metodi ausiliari privati in aggiunta a quelli ri
  */
 
 public class Scatola {
-    private Scatola[] scatole;
     private int count;
-    private float volume;
+    private final int max;
+    private final float volume;
     private float volumeTotale;
     public Scatola(float v, int n){
         if(v <= 0 || n <= 0) throw new IllegalArgumentException();
-        scatole = new Scatola[n];
+        max = n;
         volume = v;
         volumeTotale = 0;
         count = 0;
     }
     public int numero(){return count;}
     boolean aggiungi(Scatola s){
-        if(count >= scatole.length || s == this || s == null || s.volume + volumeTotale > volume)
+        if(count >= max || s == this || s == null || s.volume + volumeTotale > volume)
             return false;
-        scatole[count++] = s;
+        count++;
         volumeTotale += s.volume;
         return true;
     }

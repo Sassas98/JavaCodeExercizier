@@ -138,3 +138,5 @@ publish/
 # Publish Web Output
 *.[Pp]ublish.xml
 *.azurePubxml
+
+JavaCodeExercizierWebApp/wwwroot/jdk/

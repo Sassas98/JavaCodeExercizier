@@ -28,7 +28,7 @@
           padding: 8px;
           background: #333;
           display: flex;
-          justify-content: start;
+          justify-content: space-between;
           align-items: center;
         }
         pre {
@@ -42,11 +42,24 @@
         .javac-error-line {
             background-color: rgba(255, 0, 0, 0.2);
         }
+        #run-btn{
+            border: white 1px solid;
+            padding: 1px 10px 1px 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: none;
+        }
+
+        #run-btn:hover {
+            background: white;
+            color: black;
+        }
     </style>
 </head>
 <body>
     <div id="controls">
         <span>Java Exercise [@Model.Name]</span>
+        <span id="run-btn" style="">Run</span>
     </div>
     <div id="editor"></div>
     <pre id="output" style="height:20vh"></pre>
@@ -67,39 +80,51 @@
 
           let loadingCount = 0;
           let inLoading = false;
+          let lastOutput = "";
+          let inTimeout = false;
 
           setInterval(() => {
               if(inLoading){
-                output.textContent = loadingCount == 0 ? "." : loadingCount == 1 ? ".." : "...";
-                loadingCount = (loadingCount + 1) % 3;
+                output.textContent = loadingCount == 0 ? "" : loadingCount == 1 ? "." : loadingCount == 2 ? ".." : "...";
+                loadingCount = (loadingCount + 1) % 4;
+              }else{
+                output.textContent = lastOutput;
               }
           }, 500);
 
-            async function run() {
+            async function run(r = false) {
+              if(inTimeout && r) return;
+              if(r){
+                inTimeout = true;
+                $('#run-btn').text('Wait');
+                setTimeout(() => {
+                    inTimeout = false;
+                    $('#run-btn').text('Run');
+                }, 10000);
+              }
               const code = editor.getValue();
-              output.textContent = "";
               monaco.editor.setModelMarkers(editor.getModel(), "javac", []);
               try {
                 loadingCount = 0;
-                inLoading = true;
+                if(r) inLoading = true;
                 const res = await fetch("/run", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     java: code,
-                    main: "@(Model.Name).java"
+                    main: "@(Model.Name).java",
+                    run: r
                   })
                 });
                 const data = await res.json();
                 inLoading = false;
                 if (!data.ok && data.phase === "compile") {
-                    output.textContent = "";//`[compile error]\n${data.stderr}`;
+                    $('#run-btn').hide();
                     const regex = /:(\d+): error: (.*)/g;
                     let match;
                     const markers = [];
                     const model = editor.getModel();
                     const offset = data.start || 0;
-                    console.log({offset});
                     while ((match = regex.exec(data.stderr)) !== null) {
                         const line = parseInt(match[1]) - offset;
                         if(line < 0) continue;
@@ -120,9 +145,9 @@
                     }
                     monaco.editor.setModelMarkers(editor.getModel(), "javac", markers);
                   } else {
-                    output.textContent = data.ok
-                      ? (data.stdout || "(nessun output)")
-                      : ""; //`[${data.phase} error]\n${data.stderr}`;
+                     $('#run-btn').show();
+                     if(data.ok && data.stdout && r)
+                        lastOutput = data.stdout;
                   }
               } catch (e) {
                 output.textContent = "Errore: " + e.message;
@@ -134,7 +159,8 @@
               clearTimeout(t);
               t = setTimeout(run, 1000);
             });
-            run();
+            run(false);
+            $('#run-btn').on('click', () => run(true))
           });
     </script>
 

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
@@ -23,6 +24,7 @@ namespace JavaCodeExercizierWebApp.Controllers
         {
             public string Java { get; set; } = "";
             public string Main { get; set; } = "App";
+            public bool Run { get; set; } = false;
         }
 
         [HttpPost("run")]
@@ -39,15 +41,20 @@ namespace JavaCodeExercizierWebApp.Controllers
             var tmp = Path.Combine(Path.GetTempPath(), "javac-run-" + Guid.NewGuid());
             Directory.CreateDirectory(tmp);
 
+            var jdkRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "jdk");
+            var javaBin = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "java.exe" : "java";
+            var javacBin = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "javac.exe" : "javac";
+            var JAVA = Path.Combine(jdkRoot, "bin", javaBin);
+            var JAVAC = Path.Combine(jdkRoot, "bin", javacBin);
+
             try
             {
                 var filePath = Path.Combine(tmp, req.Main);
                 Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
                 await System.IO.File.WriteAllTextAsync(filePath, code, new UTF8Encoding(false));
-                
-                var javacPath = JAVA.EndsWith("java.exe") ? JAVA.Replace("java.exe", "javac.exe") : JAVA.Replace("java", "javac");
+
                 var toCompile = Path.Combine(tmp, req.Main);
-                var compile = await RunProcess(javacPath, $"-Xlint:all {toCompile}", tmp);
+                var compile = await RunProcess(JAVAC, $"-Xlint:all \"{toCompile}\"", tmp);
 
                 if (compile.Code != 0)
                 {
@@ -58,12 +65,24 @@ namespace JavaCodeExercizierWebApp.Controllers
                         code = compile.Code,
                         stdout = compile.Stdout,
                         stderr = compile.Stderr,
-                        start = start
+                        start
+                    });
+                }
+                if(req.Run == false)
+                {
+                    return Ok(new
+                    {
+                        ok = true,
+                        phase = "compile",
+                        code = compile.Code,
+                        stdout = compile.Stdout,
+                        stderr = compile.Stderr,
+                        start
                     });
                 }
 
-                var run = await RunProcess(JAVA, $"-cp \"{tmp}\" {req.Main}", tmp);
-                Console.WriteLine(run);
+                var run = await RunProcess(JAVA, $"-cp \"{tmp}\" {mainClass}", tmp);
+
                 return Ok(new
                 {
                     ok = run.Code == 0,
@@ -71,7 +90,7 @@ namespace JavaCodeExercizierWebApp.Controllers
                     code = run.Code,
                     stdout = run.Stdout,
                     stderr = run.Stderr,
-                    start = start
+                    start
                 });
             }
             catch (Exception ex)
