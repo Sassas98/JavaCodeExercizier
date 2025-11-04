@@ -12,14 +12,6 @@ namespace JavaCodeExercizierWebApp.Controllers
     [ApiController]
     public class RunnerController : ControllerBase
     {
-        private readonly ILogger<RunnerController> _logger;
-        private readonly string JAVA = Environment.GetEnvironmentVariable("JAVA") ?? "java";
-
-        public RunnerController(ILogger<RunnerController> logger)
-        {
-            _logger = logger;
-        }
-
         public class RunRequest
         {
             public string Java { get; set; } = "";
