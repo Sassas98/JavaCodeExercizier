@@ -15,7 +15,15 @@ namespace JavaCodeExercizierWebApp.Controllers
 
         public IActionResult Index()
         {
-            return View();
+            var vm = new IndexViewModel
+            {
+                files = Directory.GetFiles("wwwroot/java/", "*.java")
+                                 .Select(f => Path.GetFileNameWithoutExtension(f))
+                                 .Where(x => x.StartsWith("Main"))
+                                 .Select(x => x.Replace("Main", ""))
+                                 .ToArray()
+            };
+            return View(vm);
         }
         public IActionResult Editor(string name)
         {

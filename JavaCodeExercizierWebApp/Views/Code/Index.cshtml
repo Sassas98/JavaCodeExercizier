@@ -1,5 +1,84 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
-}
+﻿@model IndexViewModel
+
+<style>
+    body {
+        font-family: 'Inter', 'Segoe UI', sans-serif;
+        background: radial-gradient(circle at top left, #111 0%, #0a0a0a 100%);
+        color: #f1f5f9;
+        min-height: 100vh;
+        margin: 0;
+        padding: 2rem;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+    }
+
+    .exercise-box {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.2rem;
+        justify-content: center;
+        max-width: 1000px;
+        width: 100%;
+    }
+
+    .exercise-div {
+        background: linear-gradient(160deg, #1a1a1a, #141414);
+        border-radius: 1rem;
+        box-shadow: 0 0 10px rgba(0, 255, 0, 0.08);
+        padding: 1.5rem 2rem;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        flex: 1 1 280px;
+        text-align: center;
+        border: 1px solid rgba(0, 255, 0, 0.1);
+        backdrop-filter: blur(4px);
+    }
+
+        .exercise-div:hover {
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: 0 0 16px rgba(0, 255, 0, 0.25);
+            border-color: rgba(0, 255, 0, 0.4);
+            background: linear-gradient(160deg, #1e1e1e, #101010);
+        }
+
+    .exercise-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #e2e8f0;
+        letter-spacing: 0.3px;
+        transition: color 0.2s ease;
+    }
+
+    .exercise-div:hover .exercise-title {
+        color: #4bff4b;
+        text-shadow: 0 0 6px rgba(0, 255, 0, 0.4);
+    }
+
+    /* Optional subtle glowing frame animation */
+    @@keyframes pulseBorder {
+        0%, 100%
+
+    {
+        box-shadow: 0 0 10px rgba(0, 255, 0, 0.08);
+    }
+
+    50% {
+        box-shadow: 0 0 14px rgba(0, 255, 0, 0.18);
+    }
+
+    }
+
+    .exercise-div {
+        animation: pulseBorder 4s ease-in-out infinite;
+    }
+</style>
+
+<div class="exercise-box">
+    @foreach (var ex in Model.files)
+    {
+        <div class="exercise-div" onclick="window.location.href = '/code/editor?name=@ex'">
+            <span class="exercise-title">@ex</span>
+        </div>
+    }
+</div>

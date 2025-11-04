@@ -40,129 +40,184 @@
           overflow: auto;
         }
         .javac-error-line {
-            background-color: rgba(255, 0, 0, 0.2);
+            background-color: rgba(0, 255, 0, 0.2);
         }
-        #run-btn{
-            border: white 1px solid;
-            padding: 1px 10px 1px 10px;
-            border-radius: 10px;
+
+        .code-btn {
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            color: #f1f5f9;
+            background: transparent;
+            padding: 6px 16px;
+            border-radius: 8px;
             cursor: pointer;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            transition: all 0.25s ease;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 0 6px rgba(255, 255, 255, 0.05);
             display: none;
         }
 
-        #run-btn:hover {
-            background: white;
-            color: black;
+        .code-btn:hover {
+            background: linear-gradient(135deg, #00ff66, #00994d);
+            border-color: #00ff80;
+            color: #0a0a0a;
+            box-shadow: 0 0 14px rgba(0, 255, 128, 0.4);
+            transform: translateY(-2px) scale(1.03);
         }
+
+        .code-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 0 6px rgba(0, 255, 128, 0.3);
+        }
+
+        .back-btn {
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            color: #f8fafc;
+            background: transparent;
+            padding: 6px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            transition: all 0.25s ease;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 0 6px rgba(255, 255, 255, 0.05);
+        }
+
+        .back-btn:hover {
+            background: linear-gradient(135deg, #ff1a1a, #b30000);
+            border-color: #ff3333;
+            color: #fff;
+            box-shadow: 0 0 14px rgba(255, 0, 0, 0.4);
+            transform: translateY(-2px) scale(1.03);
+        }
+
+        .back-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 0 6px rgba(255, 0, 0, 0.3);
+        }
+
+
+
     </style>
 </head>
 <body>
     <div id="controls">
-        <span>Java Exercise [@Model.Name]</span>
-        <span id="run-btn" style="">Run</span>
+        <div style="display:flex; flex-direction: row; gap: 10px; align-items: center; font-size: 20px;">
+            <span class="back-btn" onclick="window.location.href = '/code/index'">Back</span>
+            <span>Java Exercise [@Model.Name]</span>
+        </div>
+        <span id="run-btn" class="code-btn">Run</span>
     </div>
     <div id="editor"></div>
     <pre id="output" style="height:20vh"></pre>
+    @section Scripts{
 
-    <script>
-          require.config({ paths: { vs: "https://unpkg.com/monaco-editor@0.54.0/min/vs" } });
-          require(["vs/editor/editor.main"], function () {
-            const editor = monaco.editor.create(document.getElementById("editor"), {
-              value: `@Html.Raw(Model.Java)`,
-              language: "java",
-              theme: "vs-dark",
-              automaticLayout: true,
-              fontSize: 14
-            });
+        <script>
+            require.config({ paths: { vs: "https://unpkg.com/monaco-editor@0.54.0/min/vs" } });
+            require(["vs/editor/editor.main"], function () {
+              const editor = monaco.editor.create(document.getElementById("editor"), {
+                value: `@Html.Raw(Model.Java)`,
+                language: "java",
+                theme: "vs-dark",
+                automaticLayout: true,
+                fontSize: 14
+              });
 
-            const output = document.getElementById("output");
+              const output = document.getElementById("output");
 
 
-          let loadingCount = 0;
-          let inLoading = false;
-          let lastOutput = "";
-          let inTimeout = false;
+            let loadingCount = 0;
+            let inLoading = false;
+            let lastOutput = "";
+            let inTimeout = false;
 
-          setInterval(() => {
-              if(inLoading){
-                output.textContent = loadingCount == 0 ? "" : loadingCount == 1 ? "." : loadingCount == 2 ? ".." : "...";
-                loadingCount = (loadingCount + 1) % 4;
-              }else{
-                output.textContent = lastOutput;
-              }
-          }, 500);
+            setInterval(() => {
+                if(inLoading){
+                  output.textContent = loadingCount == 0 ? "" : loadingCount == 1 ? "." : loadingCount == 2 ? ".." : "...";
+                  loadingCount = (loadingCount + 1) % 4;
+                }else{
+                  output.textContent = lastOutput;
+                }
+            }, 500);
 
-            async function run(r = false) {
-              if(inTimeout && r) return;
-              if(r){
-                inTimeout = true;
-                $('#run-btn').text('Wait');
-                setTimeout(() => {
-                    inTimeout = false;
-                    $('#run-btn').text('Run');
-                }, 10000);
-              }
-              const code = editor.getValue();
-              monaco.editor.setModelMarkers(editor.getModel(), "javac", []);
-              try {
-                loadingCount = 0;
-                if(r) inLoading = true;
-                const res = await fetch("/run", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    java: code,
-                    main: "@(Model.Name).java",
-                    run: r
-                  })
-                });
-                const data = await res.json();
-                inLoading = false;
-                if (!data.ok && data.phase === "compile") {
-                    $('#run-btn').hide();
-                    const regex = /:(\d+): error: (.*)/g;
-                    let match;
-                    const markers = [];
-                    const model = editor.getModel();
-                    const offset = data.start || 0;
-                    while ((match = regex.exec(data.stderr)) !== null) {
-                        const line = parseInt(match[1]) - offset;
-                        if(line < 0) continue;
-                        const message = match[2].trim();
-                        const lineCount = model.getLineCount();
-                        const safeLine = Math.min(line, lineCount);
+              async function run(r = false) {
+                if(inTimeout && r) return;
+                if(r){
+                  inTimeout = true;
+                  $('#run-btn').text('Wait');
+                  setTimeout(() => {
+                      inTimeout = false;
+                      $('#run-btn').text('Run');
+                  }, 10000);
+                }
+                const code = editor.getValue();
+                monaco.editor.setModelMarkers(editor.getModel(), "javac", []);
+                try {
+                  loadingCount = 0;
+                  if(r) inLoading = true;
+                  const res = await fetch("/run", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      java: code,
+                      main: "@(Model.Name).java",
+                      run: r
+                    })
+                  });
+                  const data = await res.json();
+                  inLoading = false;
+                  if (!data.ok && data.phase === "compile") {
+                      $('#run-btn').hide();
+                      const regex = /:(\d+): error: (.*)/g;
+                      let match;
+                      const markers = [];
+                      const model = editor.getModel();
+                      const offset = data.start || 0;
+                      while ((match = regex.exec(data.stderr)) !== null) {
+                          const line = parseInt(match[1]) - offset;
+                          if(line < 0) continue;
+                          const message = match[2].trim();
+                          const lineCount = model.getLineCount();
+                          const safeLine = Math.min(line, lineCount);
 
-                        const endCol = model.getLineMaxColumn(safeLine);
+                          const endCol = model.getLineMaxColumn(safeLine);
 
-                        markers.push({
-                            startLineNumber: safeLine,
-                            startColumn: 1,
-                            endLineNumber: safeLine,
-                            endColumn: endCol,
-                            message,
-                            severity: monaco.MarkerSeverity.Error,
-                        });
+                          markers.push({
+                              startLineNumber: safeLine,
+                              startColumn: 1,
+                              endLineNumber: safeLine,
+                              endColumn: endCol,
+                              message,
+                              severity: monaco.MarkerSeverity.Error,
+                          });
+                      }
+                      monaco.editor.setModelMarkers(editor.getModel(), "javac", markers);
+                    } else {
+                       $('#run-btn').show();
+                       if(data.ok && data.stdout && r)
+                          lastOutput = data.stdout;
                     }
-                    monaco.editor.setModelMarkers(editor.getModel(), "javac", markers);
-                  } else {
-                     $('#run-btn').show();
-                     if(data.ok && data.stdout && r)
-                        lastOutput = data.stdout;
-                  }
-              } catch (e) {
-                output.textContent = "Errore: " + e.message;
+                } catch (e) {
+                  output.textContent = "Errore: " + e.message;
+                }
               }
-            }
 
-            let t;
-            editor.onDidChangeModelContent(() => {
-              clearTimeout(t);
-              t = setTimeout(run, 1000);
+              let t;
+              editor.onDidChangeModelContent(() => {
+                clearTimeout(t);
+                t = setTimeout(run, 1000);
+              });
+              run(false);
+              $('#run-btn').on('click', () => run(true))
             });
-            run(false);
-            $('#run-btn').on('click', () => run(true))
-          });
-    </script>
+        </script>
 
+    }
 </body>
 </html>
