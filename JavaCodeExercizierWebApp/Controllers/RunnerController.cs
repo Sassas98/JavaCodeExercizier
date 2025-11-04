@@ -38,7 +38,9 @@ namespace JavaCodeExercizierWebApp.Controllers
             var code = $"{main}\n\n{tester}\n\n";
             int start = code.Split("\n").Length;
             code = $"{code}{req.Java}".Replace("public class", "class").Replace("class " + mainClass, "public class " + mainClass).NormalizeImports();
-            var tmp = Path.Combine(Path.GetTempPath(), "javac-run-" + Guid.NewGuid());
+            var tmpRoot = Path.Combine(AppContext.BaseDirectory, "tmp");
+            Directory.CreateDirectory(tmpRoot);
+            var tmp = Path.Combine(tmpRoot, "javac-run-" + Guid.NewGuid());
             Directory.CreateDirectory(tmp);
 
             var jdkRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "jdk");

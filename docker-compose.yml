@@ -1,0 +1,30 @@
+version: '3.9'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: JavaCodeExercizierWebApp/Dockerfile
+    container_name: aspnet_app
+    ports:
+      - "80:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Server=db;Database=JavaCodeDB;User Id=sa;Password=YourStrong!Passw0rd;
+    depends_on:
+      - db
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    restart: always
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong!Passw0rd
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql_data:/var/opt/mssql
+
+volumes:
+  sql_data:

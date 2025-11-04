@@ -126,8 +126,30 @@
                 language: "java",
                 theme: "vs-dark",
                 automaticLayout: true,
-                fontSize: 14
+                fontSize: 14,
+                contextmenu: false,
               });
+
+              editor.onKeyDown((e) => {
+                  if ((e.ctrlKey || e.metaKey) && (
+                      e.keyCode === monaco.KeyCode.KeyC || // copia
+                      e.keyCode === monaco.KeyCode.KeyV || // incolla
+                      e.keyCode === monaco.KeyCode.KeyX || // taglia
+                      e.keyCode === monaco.KeyCode.KeyA    // seleziona tutto
+                    )) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+              });
+
+              const container = editor.getDomNode();
+              container.addEventListener("paste", (e) => e.preventDefault());
+              container.addEventListener("copy", (e) => e.preventDefault());
+              container.addEventListener("cut", (e) => e.preventDefault());
+              container.addEventListener("drop", (e) => e.preventDefault());
+              container.addEventListener("dragstart", (e) => e.preventDefault());
+
+              container.addEventListener("contextmenu", (e) => e.preventDefault());
 
               const output = document.getElementById("output");
 
